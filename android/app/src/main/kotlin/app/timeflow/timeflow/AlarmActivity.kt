@@ -31,12 +31,20 @@ class AlarmActivity : Activity() {
     }
 
     private fun prepareLockScreenWindow() {
-        if (Build.VERSION.SDK_INT >= 27) { setShowWhenLocked(true); setTurnScreenOn(true) }
-        else window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON)
+        if (Build.VERSION.SDK_INT >= 27) {
+            setShowWhenLocked(true)
+            setTurnScreenOn(true)
+        }
+        // OriginOS devices have been observed to respect the legacy flags more
+        // reliably than the API 27 methods when the display was already asleep.
+        // Both paths describe the same user-visible alarm behavior.
         window.addFlags(
+            WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                WindowManager.LayoutParams.FLAG_FULLSCREEN or
-                WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
+            WindowManager.LayoutParams.FLAG_FULLSCREEN or
+            WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS
         )
         window.decorView.systemUiVisibility = (
             View.SYSTEM_UI_FLAG_FULLSCREEN or
@@ -46,6 +54,14 @@ class AlarmActivity : Activity() {
                 View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
                 View.SYSTEM_UI_FLAG_LAYOUT_STABLE
             )
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Reassert after the keyguard's transition animation. This is harmless
+        // on stock Android and prevents a vendor lock screen from reclaiming the
+        // top window after the activity was launched.
+        prepareLockScreenWindow()
     }
 
     override fun onNewIntent(intent: Intent) {
