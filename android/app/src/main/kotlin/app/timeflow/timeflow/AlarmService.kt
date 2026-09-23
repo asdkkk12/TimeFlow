@@ -80,7 +80,7 @@ class AlarmService : Service() {
         try {
             if (Build.VERSION.SDK_INT >= 34) {
                 val options = ActivityOptions.makeBasic().apply {
-                    setPendingIntentCreatorBackgroundActivityStartMode(
+                    setPendingIntentBackgroundActivityStartMode(
                         ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED
                     )
                 }.toBundle()
