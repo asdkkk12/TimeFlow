@@ -8,6 +8,12 @@ String clockText(int? minute) => minute == null
     : '${(minute ~/ 60).toString().padLeft(2, '0')}:${(minute % 60).toString().padLeft(2, '0')}';
 const repeatNames = ['不重复', '每天', '工作日', '每周'];
 
+class _PickerOption<T> {
+  const _PickerOption(this.value, this.label);
+  final T value;
+  final String label;
+}
+
 DateTime defaultEventStart(DateTime selected) {
   final selectedDay = day(selected);
   final now = DateTime.now();
@@ -271,6 +277,98 @@ class _EntryEditorState extends State<EntryEditor> {
     );
   }
 
+  Future<T?> pickOption<T>({
+    required String title,
+    required T initial,
+    required List<_PickerOption<T>> options,
+  }) async {
+    var selected = initial;
+    return showModalBottomSheet<T>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.sizeOf(context).height * .72,
+            ),
+            child: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 12, 4),
+                  child: Row(
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const Spacer(),
+                      IconButton(
+                        tooltip: '取消',
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(sheetContext),
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: RadioGroup<T>(
+                    groupValue: selected,
+                    onChanged: (value) {
+                      if (value != null) {
+                        setSheetState(() => selected = value);
+                      }
+                    },
+                    child: ListView(
+                      shrinkWrap: true,
+                      children: [
+                        for (final option in options)
+                          ListTile(
+                            leading: Radio<T>(value: option.value),
+                            title: Text(option.label),
+                            onTap: () =>
+                                setSheetState(() => selected = option.value),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.pop(sheetContext, selected),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                        child: Text('确定'),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget optionTile({
+    required IconData icon,
+    required String label,
+    required String value,
+    required VoidCallback onTap,
+  }) => ListTile(
+    contentPadding: EdgeInsets.zero,
+    leading: Icon(icon),
+    title: Text(value),
+    subtitle: Text(label),
+    trailing: const Icon(Icons.expand_more),
+    onTap: onTap,
+  );
+
   void submit() {
     final e = Entry(
       id: widget.initial?.id ?? newId(),
@@ -448,36 +546,56 @@ class _EntryEditorState extends State<EntryEditor> {
               ),
             ],
             section('提醒与重复'),
-            DropdownButtonFormField<int>(
-              initialValue: reminder ?? -1,
-              decoration: const InputDecoration(labelText: '提醒'),
-              items: const [
-                DropdownMenuItem(value: -1, child: Text('不提醒')),
-                DropdownMenuItem(value: 0, child: Text('到点提醒')),
-                DropdownMenuItem(value: 5, child: Text('提前 5 分钟')),
-                DropdownMenuItem(value: 15, child: Text('提前 15 分钟')),
-                DropdownMenuItem(value: 30, child: Text('提前 30 分钟')),
-                DropdownMenuItem(value: 60, child: Text('提前 60 分钟')),
-              ],
-              onChanged: (v) => setState(() => reminder = v == -1 ? null : v),
+            optionTile(
+              icon: Icons.notifications_outlined,
+              label: '提醒',
+              value: {
+                null: '不提醒',
+                0: '到点提醒',
+                5: '提前 5 分钟',
+                15: '提前 15 分钟',
+                30: '提前 30 分钟',
+                60: '提前 60 分钟',
+              }[reminder]!,
+              onTap: () async {
+                final value = await pickOption<int>(
+                  title: '提醒',
+                  initial: reminder ?? -1,
+                  options: const [
+                    _PickerOption(-1, '不提醒'),
+                    _PickerOption(0, '到点提醒'),
+                    _PickerOption(5, '提前 5 分钟'),
+                    _PickerOption(15, '提前 15 分钟'),
+                    _PickerOption(30, '提前 30 分钟'),
+                    _PickerOption(60, '提前 60 分钟'),
+                  ],
+                );
+                if (value != null) {
+                  setState(() => reminder = value == -1 ? null : value);
+                }
+              },
             ),
             if (!widget.single) ...[
-              const SizedBox(height: 16),
-              DropdownButtonFormField<Repeat>(
-                initialValue: repeat,
-                decoration: const InputDecoration(labelText: '重复频率'),
-                items: Repeat.values
-                    .map(
-                      (r) => DropdownMenuItem(
-                        value: r,
-                        child: Text(repeatNames[r.index]),
-                      ),
-                    )
-                    .toList(),
-                onChanged: (v) => setState(() {
-                  repeat = v!;
-                  if (repeat != Repeat.none) date ??= day(widget.date);
-                }),
+              optionTile(
+                icon: Icons.repeat,
+                label: '重复频率',
+                value: repeatNames[repeat.index],
+                onTap: () async {
+                  final value = await pickOption<Repeat>(
+                    title: '重复频率',
+                    initial: repeat,
+                    options: [
+                      for (final item in Repeat.values)
+                        _PickerOption(item, repeatNames[item.index]),
+                    ],
+                  );
+                  if (value != null) {
+                    setState(() {
+                      repeat = value;
+                      if (repeat != Repeat.none) date ??= day(widget.date);
+                    });
+                  }
+                },
               ),
               if (repeat == Repeat.weekly)
                 Padding(
@@ -514,14 +632,21 @@ class _EntryEditorState extends State<EntryEditor> {
                 ),
             ],
             section('整理'),
-            DropdownButtonFormField<String>(
-              initialValue: category,
-              decoration: const InputDecoration(labelText: '分类'),
-              items: {
-                ...widget.categories,
-                category,
-              }.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-              onChanged: (v) => setState(() => category = v!),
+            optionTile(
+              icon: Icons.folder_outlined,
+              label: '分类',
+              value: category,
+              onTap: () async {
+                final value = await pickOption<String>(
+                  title: '选择分类',
+                  initial: category,
+                  options: {
+                    ...widget.categories,
+                    category,
+                  }.map((item) => _PickerOption(item, item)).toList(),
+                );
+                if (value != null) setState(() => category = value);
+              },
             ),
             if (kind == EntryKind.task) ...[
               const SizedBox(height: 16),

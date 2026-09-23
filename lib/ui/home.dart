@@ -58,8 +58,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       return 'strongVibration';
     }
     if (model.permissions['strongHeadsUp'] == false) return 'strongVibration';
-    if (model.permissions['strongLockscreen'] == false)
+    if (model.permissions['strongLockscreen'] == false) {
       return 'strongVibration';
+    }
     if (model.permissions['fullScreen'] != true) return 'fullScreen';
     return null;
   }
