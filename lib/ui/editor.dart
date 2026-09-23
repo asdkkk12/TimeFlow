@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 import '../domain/models.dart';
@@ -54,12 +55,16 @@ class _EntryEditorState extends State<EntryEditor> {
     kind = e?.kind ?? EntryKind.event;
     date = e == null ? day(suggested) : e.date;
     until = e?.until;
-    minute = e?.minute ?? (e == null ? suggested.hour * 60 + suggested.minute : null);
+    minute =
+        e?.minute ??
+        (e == null ? suggested.hour * 60 + suggested.minute : null);
     final suggestedEnd = suggested.add(const Duration(hours: 1));
     endDate = e == null
         ? day(suggestedEnd)
         : shiftDay(date ?? widget.date, e.endDays);
-    endMinute = e?.endMinute ?? (e == null ? suggestedEnd.hour * 60 + suggestedEnd.minute : null);
+    endMinute =
+        e?.endMinute ??
+        (e == null ? suggestedEnd.hour * 60 + suggestedEnd.minute : null);
     // New items start with an at-time reminder; existing items retain their
     // saved choice, including an explicit "no reminder" value.
     reminder = e == null ? 0 : e.reminder;
@@ -76,24 +81,194 @@ class _EntryEditorState extends State<EntryEditor> {
     super.dispose();
   }
 
-  Future<DateTime?> pickDate(DateTime? initial) => showDatePicker(
-    context: context,
-    initialDate: initial ?? day(DateTime.now()),
-    firstDate: DateTime(2000),
-    lastDate: DateTime(2100),
-  );
-  Future<int?> pickTime(int? current) async {
-    final t = await showTimePicker(
+  Future<DateTime?> pickDate(DateTime? initial) async {
+    final value = initial ?? day(DateTime.now());
+    var year = value.year;
+    var month = value.month;
+    var selectedDay = value.day;
+    return showModalBottomSheet<DateTime>(
       context: context,
-      initialTime: current == null
-          ? TimeOfDay.now()
-          : TimeOfDay(hour: current ~/ 60, minute: current % 60),
-      builder: (context, child) => MediaQuery(
-        data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
-        child: child!,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setPickerState) {
+          final days = DateUtils.getDaysInMonth(year, month);
+          if (selectedDay > days) selectedDay = days;
+          Widget wheel({
+            required int value,
+            required int first,
+            required int count,
+            required ValueChanged<int> onChanged,
+            required String Function(int) label,
+          }) => Expanded(
+            child: CupertinoPicker(
+              itemExtent: 44,
+              scrollController: FixedExtentScrollController(
+                initialItem: value - first,
+              ),
+              onSelectedItemChanged: (index) => onChanged(index + first),
+              selectionOverlay: const CupertinoPickerDefaultSelectionOverlay(
+                background: Color(0x1A29B6E6),
+              ),
+              children: [
+                for (var i = first; i < first + count; i++)
+                  Center(
+                    child: Text(label(i), style: const TextStyle(fontSize: 23)),
+                  ),
+              ],
+            ),
+          );
+          return SafeArea(
+            child: SizedBox(
+              height: 310,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 12, 0),
+                    child: Row(
+                      children: [
+                        const Text(
+                          '选择日期',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.pop(
+                            sheetContext,
+                            DateTime(year, month, selectedDay),
+                          ),
+                          child: const Text('完成'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        wheel(
+                          value: year,
+                          first: 2000,
+                          count: 101,
+                          onChanged: (v) => setPickerState(() => year = v),
+                          label: (v) => '$v 年',
+                        ),
+                        wheel(
+                          value: month,
+                          first: 1,
+                          count: 12,
+                          onChanged: (v) => setPickerState(() => month = v),
+                          label: (v) => '$v 月',
+                        ),
+                        wheel(
+                          value: selectedDay,
+                          first: 1,
+                          count: days,
+                          onChanged: (v) =>
+                              setPickerState(() => selectedDay = v),
+                          label: (v) => '$v 日',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
-    return t == null ? null : t.hour * 60 + t.minute;
+  }
+
+  Future<int?> pickTime(int? current) async {
+    final initial =
+        current ?? TimeOfDay.now().hour * 60 + TimeOfDay.now().minute;
+    var hour = initial ~/ 60;
+    var minute = initial % 60;
+    return showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setPickerState) {
+          Widget wheel({
+            required int value,
+            required int count,
+            required ValueChanged<int> onChanged,
+            required String Function(int) label,
+          }) => Expanded(
+            child: CupertinoPicker(
+              itemExtent: 44,
+              scrollController: FixedExtentScrollController(initialItem: value),
+              onSelectedItemChanged: onChanged,
+              selectionOverlay: const CupertinoPickerDefaultSelectionOverlay(
+                background: Color(0x1A29B6E6),
+              ),
+              children: [
+                for (var i = 0; i < count; i++)
+                  Center(
+                    child: Text(label(i), style: const TextStyle(fontSize: 24)),
+                  ),
+              ],
+            ),
+          );
+          return SafeArea(
+            child: SizedBox(
+              height: 310,
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 12, 0),
+                    child: Row(
+                      children: [
+                        const Text(
+                          '选择时间',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () =>
+                              Navigator.pop(sheetContext, hour * 60 + minute),
+                          child: const Text('完成'),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        wheel(
+                          value: hour,
+                          count: 24,
+                          onChanged: (v) => setPickerState(() => hour = v),
+                          label: (v) => '${v.toString().padLeft(2, '0')} 时',
+                        ),
+                        const Text(
+                          ':',
+                          style: TextStyle(
+                            fontSize: 28,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        wheel(
+                          value: minute,
+                          count: 60,
+                          onChanged: (v) => setPickerState(() => minute = v),
+                          label: (v) => '${v.toString().padLeft(2, '0')} 分',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void submit() {
