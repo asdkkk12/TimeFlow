@@ -33,6 +33,7 @@ class Reminders(private val context: Context, private val store: Store) {
             "fullScreenSpecialAccess" to (Build.VERSION.SDK_INT >= 34),
             "vivoDevice" to ReminderSettings.isVivo,
             "strongHeadsUp" to (appEnabled && strong.importance >= NotificationManager.IMPORTANCE_HIGH),
+            "strongLockscreen" to (appEnabled && strong.lockscreenVisibility != Notification.VISIBILITY_SECRET),
             "strongNotifications" to (notifications.areNotificationsEnabled() && strong.importance != NotificationManager.IMPORTANCE_NONE),
             "strongVibrationEnabled" to (notifications.areNotificationsEnabled() && strong.shouldVibrate() && strong.importance >= NotificationManager.IMPORTANCE_DEFAULT),
             "missed" to store.rows("reminders").count { it.optString("status") == "missed" }

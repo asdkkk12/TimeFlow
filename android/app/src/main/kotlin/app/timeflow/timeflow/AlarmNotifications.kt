@@ -50,6 +50,7 @@ internal object AlarmNotifications {
             .setContentTitle(batch.members.joinToString("、") { it.title }).setContentText("日程提醒 · 最多振动 60 秒")
             .setContentIntent(open).setFullScreenIntent(open, true).setCategory(Notification.CATEGORY_ALARM)
             .setVisibility(Notification.VISIBILITY_PUBLIC).setOngoing(true).setOnlyAlertOnce(true)
+            .setPriority(Notification.PRIORITY_MAX).setWhen(System.currentTimeMillis()).setShowWhen(true)
             .addAction(Notification.Action.Builder(null, if (many) "全部关闭" else "关闭", action(context, "dismiss_all", batch.id)).build())
             .addAction(Notification.Action.Builder(null, if (many) "全部稍后提醒" else "稍后提醒", action(context, "snooze_all", batch.id)).build())
             .apply { if (Build.VERSION.SDK_INT >= 31) setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE) }

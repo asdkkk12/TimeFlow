@@ -58,6 +58,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       return 'strongVibration';
     }
     if (model.permissions['strongHeadsUp'] == false) return 'strongVibration';
+    if (model.permissions['strongLockscreen'] == false)
+      return 'strongVibration';
     if (model.permissions['fullScreen'] != true) return 'fullScreen';
     return null;
   }
@@ -632,6 +634,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     if (model.permissions['strongHeadsUp'] == false) {
       return '日程通知未开启或重要性不足 · 请先设置日程强提醒';
     }
+    if (model.permissions['strongLockscreen'] == false) {
+      return '锁屏通知被隐藏 · 点击打开日程强提醒通知设置';
+    }
     if (model.permissions['vivoDevice'] == true) {
       return '还需在 vivo 系统中检查后台弹出界面与锁屏通知';
     }
@@ -692,6 +697,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   ? '通知类别已关闭 · 点击设置'
                   : model.permissions['strongHeadsUp'] == false
                   ? '通知重要性不足 · 请开启悬浮通知以支持锁屏弹出'
+                  : model.permissions['strongLockscreen'] == false
+                  ? '锁屏通知被隐藏 · 请在系统通知设置中允许锁屏显示'
                   : model.permissions['strongVibrationEnabled'] == true
                   ? '已开启 · 最多持续强振动 60 秒'
                   : '振动已关闭或类别已静音 · 点击设置',

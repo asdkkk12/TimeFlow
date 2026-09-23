@@ -38,7 +38,7 @@
             android:exported="false"
             android:excludeFromRecents="true"
             android:launchMode="singleTop"
-            android:taskAffinity=""
+            android:taskAffinity="app.timeflow.timeflow.alarm"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:theme="@style/AlarmTheme" />
